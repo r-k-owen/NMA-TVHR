@@ -277,6 +277,81 @@ samples_re <- coda.samples(
 
 summary(samples_re)
 
+samples_mat_ph <- as.matrix(samples_re)
+
+hr_cols <- grep("^hr\\[", colnames(samples_mat_ph), value = TRUE)
+
+hr_summary_ph <- data.frame(
+  treatment = 1:NT,
+  mean      = apply(samples_mat_ph[, hr_cols], 2, mean),
+  lower     = apply(samples_mat_ph[, hr_cols], 2, quantile, 0.025),
+  upper     = apply(samples_mat_ph[, hr_cols], 2, quantile, 0.975),
+  median    = apply(samples_mat_ph[, hr_cols], 2, median)
+)
+
+rk_cols <- grep("^rk\\[", colnames(samples_mat_ph), value = TRUE)
+
+rk_summary_ph <- data.frame(
+  treatment = 1:NT,
+  mean      = apply(samples_mat_ph[, rk_cols], 2, mean),
+  lower     = apply(samples_mat_ph[, rk_cols], 2, quantile, 0.025),
+  upper     = apply(samples_mat_ph[, rk_cols], 2, quantile, 0.975),
+  median    = apply(samples_mat_ph[, rk_cols], 2, median)
+)
+
+trt_labels <- c("1"="DTIC", 
+                "2"="TR", 
+                "3"="IPI+DTIC", 
+                "4"="DB", 
+                "5"="DB+TR", 
+                "6"="VM",
+                "7"="VM+COB", 
+                "8"="IPI", 
+                "9"="NIV", 
+                "10"="NIV+IPI", 
+                "11"="PEM",
+                "12"="IPI+SRG", 
+                "13"="SEL+DTIC")
+
+hr_summary_ph$trt_label <- trt_labels[as.character(hr_summary_ph$treatment)]
+
+# Exclude reference treatment 
+hr_plot <- hr_summary_ph %>% filter(treatment != 1)
+
+# Define a time range (for visual only — HR is constant under PH)
+time_seq <- seq(0, 6, by = 1)   
+
+# Expand so each treatment has a row per time point
+hr_time <- hr_plot %>%
+  tidyr::crossing(time = time_seq)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PLOTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+ggplot(hr_time, aes(x = time, y = mean)) +
+  geom_line(colour = "steelblue", linewidth = 0.9) +
+  geom_ribbon(aes(ymin = lower, ymax = upper),
+              fill = "steelblue", alpha = 0.2) +
+  geom_hline(yintercept = 1, 
+             linetype = "dashed", colour = "red", linewidth = 0.5) +
+  facet_wrap(~ trt_label, ncol = 4, scales = "free_y") +
+  scale_x_continuous(breaks = c(1, 2, 3, 4, 5, 6)) +
+  labs(
+    title    = "Time-Varying Hazard Ratio vs DTIC",
+    subtitle = "Posterior mean with 95% credible interval",
+    x        = "Time (years)",
+    y        = "Hazard Ratio"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    strip.text       = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+
+# Re-labelled for combined plot
+hr_time$treatment <- hr_time$trt_label
+
 ###############
 # End of file #
 ###############
