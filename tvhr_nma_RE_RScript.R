@@ -468,7 +468,7 @@ trt_labels <- c("DTIC", "TR", "IPI+DTIC", "DB", "DB+TR", "VM",
 n_time<-200
 time_seq <- seq(0.1, 6, length.out = 200)
 
-hr_df <- expand.grid(time = time_vec, treatment = trt_labels) %>%
+hr_df <- expand.grid(time = time_seq, treatment = trt_labels) %>%
   arrange(treatment, time) %>%
   mutate(
     tg   = rep(1:n_time, times = NT),
@@ -827,7 +827,7 @@ for(tg in 1:T){
   }
 }
 
-rk_df <- expand.grid(time = time_vec, treatment = trt_labels) %>%
+rk_df <- expand.grid(time = time_seq, treatment = trt_labels) %>%
   arrange(treatment, time) %>%
   mutate(
     tg   = rep(1:n_time, times = NT),
