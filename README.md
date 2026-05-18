@@ -4,7 +4,7 @@ Pairwise (PWMA) and network meta-analysis (NMA) of time to event outcomes assumi
 # Example Data 
 Pairwise MA: https://search.r-project.org/CRAN/refmans/surrosurv/html/gastadv.html 
 
-Network meta-analysis: [melanoma_ipd.csv](path/to/melanoma_ipd.csv)
+Network meta-analysis: [melanoma_ipd.csv](melanoma_ipd.csv)
 
 # Pairwise meta-analysis
 ## Descriptive analyses
