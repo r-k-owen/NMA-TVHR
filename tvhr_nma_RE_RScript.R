@@ -842,6 +842,42 @@ rk_yr1 <- subset(rk_df, rk_df$tg==31)
 rk_yr2 <- subset(rk_df, rk_df$tg==65)
 rk_yr5 <- subset(rk_df, rk_df$tg==166)
 
+# Combined plot with constant HR
+pdf(file = "TVHR_NMA_RE_comb.pdf")
+ggplot(hr_df_noref, aes(x = time, y = mean)) +
+  geom_line(aes(colour = "TVHR + 95% CrI"), linewidth = 0.9) +
+  geom_ribbon(aes(ymin = low, ymax = high, fill = "TVHR + 95% CrI"), alpha = 0.2) +
+  geom_line(data = hr_time,
+            aes(x = time, y = mean, colour = "Constant HR + 95% CrI"),
+            linewidth = 0.9) +
+  geom_ribbon(data = hr_time,
+              aes(x = time, ymin = lower, ymax = upper, fill = "Constant HR + 95% CrI"),
+              alpha = 0.2,
+              inherit.aes = FALSE) +
+  geom_hline(yintercept = 1,
+             linetype = "dashed", colour = "red", linewidth = 0.5) +
+  scale_colour_manual(values = c("TVHR + 95% CrI" = "steelblue",
+                                 "Constant HR + 95% CrI"     = "plum"),
+                      name = NULL) +
+  scale_fill_manual(values = c("TVHR + 95% CrI" = "steelblue",
+                               "Constant HR + 95% CrI"     = "plum"),
+                    name = NULL) +
+  facet_wrap(~ treatment, ncol = 4, scales = "free_y") +
+  scale_x_continuous(breaks = c(1, 2, 3, 4, 5, 6)) +
+  labs(
+    title    = "Time-Varying and Constant Hazard Ratio vs DTIC (Random Effects Model)",
+    subtitle = "Posterior mean with 95% credible interval",
+    x        = "Time (years)",
+    y        = "Hazard Ratio"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    strip.text       = element_text(face = "bold"),
+    panel.grid.minor = element_blank(),
+    legend.position  = "bottom"
+  )
+dev.off()
+                  
 ###############
 # End of file #
 ###############
