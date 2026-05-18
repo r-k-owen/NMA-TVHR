@@ -8,22 +8,22 @@ Network meta-analysis: [melanoma_ipd.csv](melanoma_ipd.csv)
 
 # Pairwise meta-analysis
 ## Descriptive analyses
-Pairwise meta-analysis: descriptive_pw_RScript.R
+Pairwise meta-analysis: [descriptive_pw_RScript.R](descriptive_pw_RScript.R)
 
 ## Constant and TVHR
-Constant and TVHR: tvhr_pw_RE_RScript.R
+Constant and TVHR: [tvhr_pw_RE_RScript.R](tvhr_pw_RE_RScript.R)
 
 # Network meta-analysis 
 ## Descriptive analyses
-Network meta-analysis: descriptive_nma_RScript.R
+Network meta-analysis: [descriptive_nma_RScript.R](descriptive_nma_RScript.R)
 
 ## Constant HR  
-Fixed effect model: ph_nma_FE_RScript.R 
+Fixed effect model: [ph_nma_FE_RScript.R](ph_nma_FE_RScript.R) 
 
-Random effects model: ph_nma_RE_RScript.R
+Random effects model: [ph_nma_RE_RScript.R](ph_nma_RE_RScript.R)
 
 ## TVHR
-Fixed effect model: tvhr_nma_FE_RScript.R
+Fixed effect model: [tvhr_nma_FE_RScript.R](tvhr_nma_FE_RScript.R)
 
-Random effects model: tvhr_nma_RE_RScript.R
+Random effects model: [tvhr_nma_RE_RScript.R](tvhr_nma_RE_RScript.R)
 
