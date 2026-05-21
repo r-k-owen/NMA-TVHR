@@ -1,6 +1,19 @@
 # NMA-TVHR 
 Pairwise (PWMA) and network meta-analysis (NMA) of time to event outcomes assuming non-proportional hazards using a time varying hazard ratio approach.
 
+# Citation
+Please cite: https://doi.org/10.48550/arXiv.2605.20567.
+
+@article{owen2026tvhr,
+      title={Meta-analysis and network meta-analysis of time-to-event outcomes with non-proportional hazards: a Bayesian time-varying hazard ratio approach}, 
+      author={Rhiannon K Owen and Keith R Abrams},
+      year={2026},
+      eprint={2605.20567},
+      archivePrefix={arXiv},
+      primaryClass={stat.ME},
+      url={https://arxiv.org/abs/2605.20567}, 
+} 
+
 # Example Data 
 Pairwise meta-analysis example data: https://search.r-project.org/CRAN/refmans/surrosurv/html/gastadv.html 
 
