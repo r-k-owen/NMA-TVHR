@@ -4,6 +4,7 @@ Pairwise (PWMA) and network meta-analysis (NMA) of time to event outcomes assumi
 # Citation
 Please cite: https://doi.org/10.48550/arXiv.2605.20567.
 
+Bibtex citation:
 @article{owen2026tvhr,
       title={Meta-analysis and network meta-analysis of time-to-event outcomes with non-proportional hazards: a Bayesian time-varying hazard ratio approach}, 
       author={Rhiannon K Owen and Keith R Abrams},
