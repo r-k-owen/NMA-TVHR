@@ -5,13 +5,17 @@ Pairwise (PWMA) and network meta-analysis (NMA) of time to event outcomes assumi
 Please cite: Owen, R.K., Abrams, K.R. Meta-analysis and network meta-analysis of time-to-event outcomes with non-proportional hazards: a Bayesian time-varying hazard ratio approach. BMC Med Res Methodol (2026). https://doi.org/10.1186/s12874-026-02963-5
 
 Bibtex citation:
-@article{owen2026tvhr,
-      title={Meta-analysis and network meta-analysis of time-to-event outcomes with non-proportional hazards: a Bayesian time-varying hazard ratio approach}, 
-      author={Rhiannon K Owen and Keith R Abrams},
-      year={2026},
-      journal={BMC Medical Research Methodology},
-      doi={10.1186/s12874-026-02963-5}
-} 
+@article{Owen2026,
+  author  = {Owen, Rhiannon K. and Abrams, Keith R.},
+  title   = {Meta-analysis and network meta-analysis of time-to-event outcomes with non-proportional hazards: a {B}ayesian time-varying hazard ratio approach},
+  journal = {BMC Medical Research Methodology},
+  year    = {2026},
+  volume  = {26},
+  publisher = {BioMed Central},
+  doi     = {10.1186/s12874-026-02963-5},
+  url     = {https://doi.org/10.1186/s12874-026-02963-5},
+  issn    = {1471-2288}
+}
 
 # Example Data 
 Pairwise meta-analysis example data: https://search.r-project.org/CRAN/refmans/surrosurv/html/gastadv.html 
