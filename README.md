@@ -43,3 +43,14 @@ Network meta-analysis TVHR - Fixed effect model: [tvhr_nma_FE_RScript.R](tvhr_nm
 
 Network meta-analysis TVHR - Random effects model: [tvhr_nma_RE_RScript.R](tvhr_nma_RE_RScript.R)
 
+## License
+
+[LICENSE](LICENSE)
+
+## Funding
+
+This work was supported by a Health and Care Research Wales – NIHR Advanced Fellowship (HCRW NIHR FS(A)-2023b-RO/NIHR303628).
+
+## Contact
+
+Professor Rhiannon K Owen, Population Data Science, Swansea University Medical School – r.k.owen@swansea.ac.uk
