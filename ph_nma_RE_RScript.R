@@ -32,7 +32,7 @@ model {
       y[i,k-1] ~ dnorm(delta[i,k], prec[i,k-1])
       delta[i,k] ~ dnorm(md[i,k], precd[i,k])
       md[i,k]    <- d[t[i,k]] - d[t[i,1]] + sw[i,k]
-      precd[i,k] <- 2*(k-1) / (k * tau2)   # precision = k / (2*(k-1)*tau^2)
+      precd[i,k] <- 2*(k-1) / (k * tau2)   # precision = (2(k-1)/k*1/tau^2)
       w[i,k]     <- delta[i,k] - (d[t[i,k]] - d[t[i,1]])
       sw[i,k]    <- sum(w[i,2:(k-1)]) / (k-1)
     }
@@ -200,7 +200,6 @@ for(i in 1:NS){
     y_re[i, 2]    <- coefs["trt3"]
     prec_re[i, 1] <- 1 / vc["trt2", "trt2"]
     prec_re[i, 2] <- 1 / vc["trt3", "trt3"]
-    # Off-diagonal correlation handled via the w[i,k] correction
   }
 }
 
