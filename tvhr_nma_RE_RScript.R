@@ -105,9 +105,8 @@ model {
   # 2*(k-1)/k * Sigma at k=2 = Sigma, so precision = inverse(Sigma)
   Omega[1:2, 1:2]  <- inverse(Sigma[1:2, 1:2])
   
-  # Precision matrix for arm k=3: 2*(k-1)/k * Sigma = 4/3 * Sigma
-  # so precision = 3/4 * inverse(Sigma)
-  Omega2[1:2, 1:2] <- (3/4) * inverse(Sigma[1:2, 1:2])
+  # Precision matrix for arm k=3: 2*(k-1)/k * inverse(Sigma) = 4/3 * inverse(Sigma)
+  Omega2[1:2, 1:2] <- (4/3) * inverse(Sigma[1:2, 1:2])
   
   ##########################################################################
   # TRANSFORMATIONS
