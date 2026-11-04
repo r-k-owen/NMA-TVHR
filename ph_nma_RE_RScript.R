@@ -23,7 +23,7 @@ model {
     y[i,1] ~ dnorm(delta[i,2], prec[i,1])
     delta[i,2] ~ dnorm(md[i,2], precd[i,2])
     md[i,2]    <- d[t[i,2]] - d[t[i,1]]
-    precd[i,2] <- 2 / tau2           # k=2: 2*(k-1)/k * tau^2 = 1*tau^2, precision = 1/tau^2
+    precd[i,2] <- 1 / tau2           # k=2: 2*(k-1)/k * tau^2 = 1*tau^2, precision = 1/tau^2
                                       # Note: JAGS uses precision so 2(k-1)/k*tau^2 -> k/(2(k-1)) * 1/tau^2
     w[i,2]     <- delta[i,2] - (d[t[i,2]] - d[t[i,1]])
 
