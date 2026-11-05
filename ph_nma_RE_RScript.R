@@ -1,49 +1,60 @@
-# Author: Rhiannon K Owen #
-# Date: 18/05/2026 #
-# R version: 4.5.0 #
+#############################################
+# Author: Rhiannon K Owen                   #
+# Date: 18/05/2026                          #
+# Revised: 04/11/2026                       #
+#   - Within-study sampling covariance for CheckMate 067 incorporated by     #
+#     conditioning y2 | y1 in the likelihood                                 #
+#   - Comments corrected                                                     #
+# R version: 4.5.0                          #
+#############################################
 
 #############################################
 # Clear environment & set working directory #
 #############################################
-rm(list = ls())
 
+rm(list = ls())
 setwd("wd")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# JAGS MODEL - PHHR NMA Fixed Effect
+# JAGS MODEL - PHHR NMA Random Effects
 # ══════════════════════════════════════════════════════════════════════════════
 
 ph_nma_re_model <- "
 model {
+
   ##########################################################################
   # LIKELIHOOD & RANDOM EFFECTS — all studies
   ##########################################################################
+
   for(i in 1:NS){
+
     # Arm k=2 (all studies)
     y[i,1] ~ dnorm(delta[i,2], prec[i,1])
     delta[i,2] ~ dnorm(md[i,2], precd[i,2])
-    md[i,2]    <- d[t[i,2]] - d[t[i,1]]
-    precd[i,2] <- 1 / tau2           # k=2: 2*(k-1)/k * tau^2 = 1*tau^2, precision = 1/tau^2
-                                      # Note: JAGS uses precision so 2(k-1)/k*tau^2 -> k/(2(k-1)) * 1/tau^2
-    w[i,2]     <- delta[i,2] - (d[t[i,2]] - d[t[i,1]])
+    md[i,2] <- d[t[i,2]] - d[t[i,1]]
+    precd[i,2] <- 1 / tau2 
+    w[i,2] <- delta[i,2] - (d[t[i,2]] - d[t[i,1]])
 
     # Arm k=3 (3-arm study only; for 2-arm studies na[i]<3 so loop does not execute)
     for(k in 3:na[i]){
-      y[i,k-1] ~ dnorm(delta[i,k], prec[i,k-1])
+      # Conditional likelihood y[i,k-1] | y[i,1] (accounts for sampling covariance)
+      y[i,k-1] ~ dnorm(delta[i,k] + b[i] * (y[i,1] - delta[i,2]), cprec[i])
       delta[i,k] ~ dnorm(md[i,k], precd[i,k])
-      md[i,k]    <- d[t[i,k]] - d[t[i,1]] + sw[i,k]
-      precd[i,k] <- 2*(k-1) / (k * tau2)   # precision = (2(k-1)/k*1/tau^2)
-      w[i,k]     <- delta[i,k] - (d[t[i,k]] - d[t[i,1]])
-      sw[i,k]    <- sum(w[i,2:(k-1)]) / (k-1)
+      md[i,k] <- d[t[i,k]] - d[t[i,1]] + sw[i,k]
+      precd[i,k] <- 2*(k-1) / (k * tau2)   
+      w[i,k] <- delta[i,k] - (d[t[i,k]] - d[t[i,1]])
+      sw[i,k] <- sum(w[i,2:(k-1)]) / (k-1)
     }
   }
 
   ##########################################################################
   # RESIDUAL DEVIANCE
   ##########################################################################
+
   for(i in 1:NS){
-    for(k in 1:(na[i]-1)){
-      dev[i,k] <- (y[i,k] - delta[i,k+1])^2 * prec[i,k]
+    dev[i,1] <- (y[i,1] - delta[i,2])^2 * prec[i,1]
+    for(k in 3:na[i]){
+      dev[i,k-1] <- (y[i,k-1] - delta[i,k] - b[i] * (y[i,1] - delta[i,2]))^2 * cprec[i]
     }
     resdev[i] <- sum(dev[i, 1:(na[i]-1)])
   }
@@ -52,35 +63,39 @@ model {
   ##########################################################################
   # PRIORS
   ##########################################################################
+
   d[1] <- 0
   for(k in 2:NT){
-    d[k] ~ dnorm(0, 0.01)    # N(0, 100) on variance scale = precision 0.01
+    d[k] ~ dnorm(0, 0.01)   # N(0, 100) on variance scale = precision 0.01
   }
 
-  tau  ~ dunif(0, 1)
+  tau ~ dunif(0, 1)
   tau2 <- tau * tau
 
   ##########################################################################
   # TRANSFORMATIONS
   ##########################################################################
+
   for(k in 1:NT){
     loghr[k] <- d[k]
-    hr[k]    <- exp(d[k])
+    hr[k] <- exp(d[k])
   }
 
   for(k in 1:NT){
     for(j in 1:NT){
       better[j,k] <- step(loghr[k] - loghr[j] - 0.0001)
     }
-    rk[k]   <- 1 + sum(better[,k])
+    rk[k] <- 1 + sum(better[,k])
     best[k] <- equals(rk[k], 1)
   }
+
 }
 "
 
 # ══════════════════════════════════════════════════════════════════════════════
 # LIBRARIES
 # ══════════════════════════════════════════════════════════════════════════════
+
 library(dplyr)
 library(rjags)
 library(coda)
@@ -88,16 +103,19 @@ library(surrosurv)
 library(coxme)
 library(survival)
 library(MASS)
+library(ggplot2)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DATA PREP
 # ══════════════════════════════════════════════════════════════════════════════
+
 dat <- read.csv("melanoma_ipd.csv")
 
 # Re-order studies to loop through 2-arm studies sequentially
 dat$studyCode[dat$studyCode==4]<- 14
 dat$studyCode[dat$studyCode==13]<- 4
 dat$studyCode[dat$studyCode==14]<- 13
+
 dat$trt<- dat$arm-1
 
 # Assign treatment indicators
@@ -108,12 +126,13 @@ dat$trt3 <- ifelse(dat$trt == 2, 1, 0)
 # ══════════════════════════════════════════════════════════════════════════════
 # STUDY STRUCTURE
 # ══════════════════════════════════════════════════════════════════════════════
+
 # NS - number of studies
 # NS2 - number of 2 arm studies
-NS  <- 13
-NS2 <- 12   
+NS <- 13
+NS2 <- 12
 
-# Treatment codes 
+# Treatment codes
 # Treatment 1 - Dacarbazine
 # Treatment 2 - Tremelimumab
 # Treatment 3 - Ipilimumab + Dacarbazine
@@ -129,26 +148,27 @@ NS2 <- 12
 # Treatment 13 - Selumetinib + Dacarbazine
 
 study_trts <- list(
-  c(1,  4),    # Study 1  - BREAK3
-  c(1,  6),    # Study 2  - BRIM3
-  c(1,  9),    # Study 3  - CheckMate066
-  c(1, 13),    # Study 4  - Robert 2013
-  c(8, 10),    # Study 5  - CheckMate069
-  c(6,  7),    # Study 6  - coBRIM
-  c(4,  5),    # Study 7  - COMBI-d
-  c(5,  6),    # Study 8  - COMBI-v
-  c(8, 12),    # Study 9  - Hodi 2014
-  c(8, 11),    # Study 10 - Keynote 006
-  c(1,  2),    # Study 11 - Ribas 2013
-  c(1,  3),    # Study 12 - Robert 2011
-  c(8,  9, 10) # Study 13 - CheckMate067 (3-arm)
+  c(1, 4),       # Study 1  - BREAK3
+  c(1, 6),       # Study 2  - BRIM3
+  c(1, 9),       # Study 3  - CheckMate066
+  c(1, 13),      # Study 4  - Robert 2013
+  c(8, 10),      # Study 5  - CheckMate069
+  c(6, 7),       # Study 6  - coBRIM
+  c(4, 5),       # Study 7  - COMBI-d
+  c(5, 6),       # Study 8  - COMBI-v
+  c(8, 12),      # Study 9  - Hodi 2014
+  c(8, 11),      # Study 10 - Keynote 006
+  c(1, 2),       # Study 11 - Ribas 2013
+  c(1, 3),       # Study 12 - Robert 2011
+  c(8, 9, 10)    # Study 13 - CheckMate067 (3-arm)
 )
 
 # Number of arms
-na       <- sapply(study_trts, length)
+na <- sapply(study_trts, length)
 max_arms <- max(na)
+
 # Number of treatments
-NT       <- max(unlist(study_trts))
+NT <- max(unlist(study_trts))
 
 # Study specific treatment matrix
 t_mat <- matrix(0, nrow = NS, ncol = max_arms)
@@ -156,23 +176,23 @@ for(i in 1:NS){
   t_mat[i, 1:na[i]] <- study_trts[[i]]
 }
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # FIT COX MODELS - STANDARD PH, NO TIME INTERACTION
 # ══════════════════════════════════════════════════════════════════════════════
+
 fit.cox.ph <- vector("list", NS)
 
 for(i in 1:NS){
   if(i != 13){   # 2-arm trials
     fit.cox.ph[[i]] <- coxph(
       Surv(time, event) ~ trt,
-      data   = dat,
+      data = dat,
       subset = studyCode == i
     )
   } else {       # 3-arm trial (study 13)
     fit.cox.ph[[i]] <- coxph(
       Surv(time, event) ~ trt2 + trt3,
-      data   = dat,
+      data = dat,
       subset = studyCode == i
     )
   }
@@ -182,16 +202,20 @@ for(i in 1:NS){
 # EXTRACT COEFFICIENTS AND BUILD JOINT ARRAYS FOR JAGS
 # ══════════════════════════════════════════════════════════════════════════════
 
-# y is NS * (max_arms-1): log-HR for each contrast within each study
-# prec is NS * (max_arms-1): precision for each contrast
+# y     is NS * (max_arms-1): log-HR for each contrast within each study
+# prec  is NS * (max_arms-1): marginal precision for each contrast
+# b     is length NS: regression coefficient V12/V11 for y2 | y1 (0 for 2-arm studies)
+# cprec is length NS: conditional precision 1/(V22 - V12^2/V11) for y2 | y1
 
 y_re    <- matrix(NA, nrow = NS, ncol = max_arms - 1)
 prec_re <- matrix(NA, nrow = NS, ncol = max_arms - 1)
+b_re     <- rep(0, NS)
+cprec_re <- rep(1, NS)
 
 for(i in 1:NS){
   coefs <- coef(fit.cox.ph[[i]])
   vc    <- vcov(fit.cox.ph[[i]])
-  
+
   if(i != 13){
     y_re[i, 1]    <- coefs["trt"]
     prec_re[i, 1] <- 1 / vc["trt", "trt"]
@@ -199,29 +223,40 @@ for(i in 1:NS){
     y_re[i, 1]    <- coefs["trt2"]
     y_re[i, 2]    <- coefs["trt3"]
     prec_re[i, 1] <- 1 / vc["trt2", "trt2"]
-    prec_re[i, 2] <- 1 / vc["trt3", "trt3"]
+    prec_re[i, 2] <- 1 / vc["trt3", "trt3"]   
+    
+    # Within-study sampling covariance (shared IPI control arm):
+    # condition y2 on y1 so the likelihood equals the bivariate normal
+    b_re[i]     <- vc["trt2", "trt3"] / vc["trt2", "trt2"]
+    cprec_re[i] <- 1 / (vc["trt3", "trt3"] - (vc["trt2", "trt3"]^2 / vc["trt2", "trt2"]))
   }
 }
+
+# Check: sampling correlation between the two CheckMate 067 contrasts
+cov2cor(vcov(fit.cox.ph[[13]]))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # JAGS DATA LIST
 # ══════════════════════════════════════════════════════════════════════════════
 
 jags_data_re <- list(
-  NS   = NS,
-  NT   = NT,
-  t    = t_mat,
-  na   = na,
-  y    = y_re,
-  prec = prec_re
+  NS    = NS,
+  NT    = NT,
+  t     = t_mat,
+  na    = na,
+  y     = y_re,
+  prec  = prec_re,
+  b     = b_re,
+  cprec = cprec_re
 )
 
 # ══════════════════════════════════════════════════════════════════════════════
 # INITIAL VALUES - 3 CHAINS
 # ══════════════════════════════════════════════════════════════════════════════
+
 delta_init <- matrix(NA, nrow = NS, ncol = max_arms)
-delta_init[, 2] <- 0        # arm 2 for all studies
-delta_init[NS, 3] <- 0      # arm 3 for 3-arm study only
+delta_init[, 2]  <- 0   # arm 2 for all studies
+delta_init[NS, 3] <- 0  # arm 3 for 3-arm study only
 
 inits1 <- list(
   d     = c(NA, rep(0, NT - 1)),
@@ -246,15 +281,17 @@ inits_re <- list(inits1, inits2, inits3)
 # ══════════════════════════════════════════════════════════════════════════════
 # SET PARAMETERS TO MONITOR
 # ══════════════════════════════════════════════════════════════════════════════
-params_re <- c("hr", "rk", "best", "tau")
+
+params_re <- c("hr", "rk", "best", "tau", "totresdev")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # COMPILE AND RUN JAGS MODEL
 # ══════════════════════════════════════════════════════════════════════════════
+
 fit_ph_re <- jags.model(
   textConnection(ph_nma_re_model),
-  data    = jags_data_re,
-  inits   = inits_re,
+  data     = jags_data_re,
+  inits    = inits_re,
   n.chains = 3,
   n.adapt  = 10000
 )
@@ -282,43 +319,43 @@ hr_cols <- grep("^hr\\[", colnames(samples_mat_ph), value = TRUE)
 
 hr_summary_ph <- data.frame(
   treatment = 1:NT,
-  mean      = apply(samples_mat_ph[, hr_cols], 2, mean),
-  lower     = apply(samples_mat_ph[, hr_cols], 2, quantile, 0.025),
-  upper     = apply(samples_mat_ph[, hr_cols], 2, quantile, 0.975),
-  median    = apply(samples_mat_ph[, hr_cols], 2, median)
+  mean   = apply(samples_mat_ph[, hr_cols], 2, mean),
+  lower  = apply(samples_mat_ph[, hr_cols], 2, quantile, 0.025),
+  upper  = apply(samples_mat_ph[, hr_cols], 2, quantile, 0.975),
+  median = apply(samples_mat_ph[, hr_cols], 2, median)
 )
 
 rk_cols <- grep("^rk\\[", colnames(samples_mat_ph), value = TRUE)
 
 rk_summary_ph <- data.frame(
   treatment = 1:NT,
-  mean      = apply(samples_mat_ph[, rk_cols], 2, mean),
-  lower     = apply(samples_mat_ph[, rk_cols], 2, quantile, 0.025),
-  upper     = apply(samples_mat_ph[, rk_cols], 2, quantile, 0.975),
-  median    = apply(samples_mat_ph[, rk_cols], 2, median)
+  mean   = apply(samples_mat_ph[, rk_cols], 2, mean),
+  lower  = apply(samples_mat_ph[, rk_cols], 2, quantile, 0.025),
+  upper  = apply(samples_mat_ph[, rk_cols], 2, quantile, 0.975),
+  median = apply(samples_mat_ph[, rk_cols], 2, median)
 )
 
-trt_labels <- c("1"="DTIC", 
-                "2"="TR", 
-                "3"="IPI+DTIC", 
-                "4"="DB", 
-                "5"="DB+TR", 
+trt_labels <- c("1"="DTIC",
+                "2"="TR",
+                "3"="IPI+DTIC",
+                "4"="DB",
+                "5"="DB+TR",
                 "6"="VM",
-                "7"="VM+COB", 
-                "8"="IPI", 
-                "9"="NIV", 
-                "10"="NIV+IPI", 
+                "7"="VM+COB",
+                "8"="IPI",
+                "9"="NIV",
+                "10"="NIV+IPI",
                 "11"="PEM",
-                "12"="IPI+SRG", 
+                "12"="IPI+SRG",
                 "13"="SEL+DTIC")
 
 hr_summary_ph$trt_label <- trt_labels[as.character(hr_summary_ph$treatment)]
 
-# Exclude reference treatment 
+# Exclude reference treatment
 hr_plot <- hr_summary_ph %>% filter(treatment != 1)
 
 # Define a time range (for visual only — HR is constant under PH)
-time_seq <- seq(0, 6, by = 1)   
+time_seq <- seq(0, 6, by = 1)
 
 # Expand so each treatment has a row per time point
 hr_time <- hr_plot %>%
@@ -332,15 +369,15 @@ ggplot(hr_time, aes(x = time, y = mean)) +
   geom_line(colour = "steelblue", linewidth = 0.9) +
   geom_ribbon(aes(ymin = lower, ymax = upper),
               fill = "steelblue", alpha = 0.2) +
-  geom_hline(yintercept = 1, 
+  geom_hline(yintercept = 1,
              linetype = "dashed", colour = "red", linewidth = 0.5) +
   facet_wrap(~ trt_label, ncol = 4, scales = "free_y") +
   scale_x_continuous(breaks = c(1, 2, 3, 4, 5, 6)) +
   labs(
-    title    = "Time-Varying Hazard Ratio vs DTIC",
+    title    = "Hazard Ratio vs DTIC (Proportional Hazards, Random Effects)",
     subtitle = "Posterior mean with 95% credible interval",
-    x        = "Time (years)",
-    y        = "Hazard Ratio"
+    x = "Time (years)",
+    y = "Hazard Ratio"
   ) +
   theme_minimal(base_size = 11) +
   theme(
